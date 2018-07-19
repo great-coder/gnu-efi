@@ -9,8 +9,7 @@
 INC_DEPS = $(INC_DEPS) \
     $(SDK_INSTALL_DIR)\include\efi\protocol\efivar.h \
     $(SDK_INSTALL_DIR)\include\efi\protocol\legacyboot.h \
-    $(SDK_INSTALL_DIR)\include\efi\protocol\vgaclass.h \
-    $(SDK_INSTALL_DIR)\include\efi\protocol\efidbg.h \
+    $(SDK_INSTALL_DIR)\include\efi\protocol\vgaclass.h
 
 
 !IF "$(PROCESSOR)" == "Ia32"
@@ -22,7 +21,6 @@ INC_DEPS = $(INC_DEPS) \
 
 !IF "$(PROCESSOR)" == "Ia64"
 INC_DEPS = $(INC_DEPS) \
-    $(SDK_INSTALL_DIR)\include\efi\protocol\$(PROCESSOR)\eficontext.h \
 
 
 !ENDIF
