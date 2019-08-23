@@ -59,7 +59,9 @@ _start:
  	testl %eax,%eax
  	jne .exit
   
+        call _ctors
   	call efi_main			# call app with "image" and "systab" argument
+        call _dtors
 
 .exit:	leave
   	ret

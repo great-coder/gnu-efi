@@ -56,8 +56,10 @@ _start:
 	popq %rdi
 	popq %rsi
 
+        call _ctors
 	call efi_main
 	addq $8, %rsp
+        call _dtors
 
 .exit:	
   	ret

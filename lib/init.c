@@ -21,6 +21,13 @@ EFIDebugVariable (
     VOID
     );
 
+#if defined(__x86_64__) || defined(__i386__) || defined(__i686__)
+static inline void pause(void)
+{
+	__asm__ __volatile__("pause");
+}
+#endif
+
 VOID
 InitializeLib (
     IN EFI_HANDLE           ImageHandle,
@@ -46,52 +53,55 @@ Returns:
     EFI_STATUS              Status;
     CHAR8                   *LangCode;
 
-    if (!LibInitialized) {
-        LibInitialized = TRUE;
-        LibFwInstance = FALSE;
-        LibImageHandle = ImageHandle;
+    register volatile UINTN x = 0;
+    extern char _text, _data;
+
+    if (LibInitialized)
+            return;
+
+    LibInitialized = TRUE;
+    LibFwInstance = FALSE;
+    LibImageHandle = ImageHandle;
+
+    //
+    // Set up global pointer to the system table, boot services table,
+    // and runtime services table
+    //
+
+    ST = SystemTable;
+    BS = SystemTable->BootServices;
+    RT = SystemTable->RuntimeServices;
+    // ASSERT (CheckCrc(0, &ST->Hdr));
+    // ASSERT (CheckCrc(0, &BS->Hdr));
+    // ASSERT (CheckCrc(0, &RT->Hdr));
 
 
-        //
-        // Set up global pointer to the system table, boot services table,
-        // and runtime services table
-        //
+    //
+    // Initialize pool allocation type
+    //
 
-        ST = SystemTable;
-        BS = SystemTable->BootServices;
-        RT = SystemTable->RuntimeServices;
-//        ASSERT (CheckCrc(0, &ST->Hdr));
-//        ASSERT (CheckCrc(0, &BS->Hdr));
-//        ASSERT (CheckCrc(0, &RT->Hdr));
+    if (ImageHandle) {
+        Status = uefi_call_wrapper(
+            BS->HandleProtocol,
+            3,
+            ImageHandle, 
+            &LoadedImageProtocol,
+            (VOID*)&LoadedImage
+        );
 
-
-        //
-        // Initialize pool allocation type
-        //
-
-        if (ImageHandle) {
-            Status = uefi_call_wrapper(
-                BS->HandleProtocol,
-                3,
-                ImageHandle, 
-                &LoadedImageProtocol,
-                (VOID*)&LoadedImage
-            );
-
-            if (!EFI_ERROR(Status)) {
-                PoolAllocationType = LoadedImage->ImageDataType;
-            }
-            EFIDebugVariable ();
+        if (!EFI_ERROR(Status)) {
+            PoolAllocationType = LoadedImage->ImageDataType;
         }
-
-        //
-        // Initialize Guid table
-        //
-
-        InitializeGuid();
-
-        InitializeLibPlatform(ImageHandle,SystemTable);
+        EFIDebugVariable ();
     }
+
+    //
+    // Initialize Guid table
+    //
+
+    InitializeGuid();
+
+    InitializeLibPlatform(ImageHandle,SystemTable);
 
     //
     // 
@@ -103,6 +113,20 @@ Returns:
         if (LangCode) {
             FreePool (LangCode);
         }
+    }
+
+    Print(L"add-symbol-file x86_64/apps/ctors_test.so 0x%08x -s .data 0x%08x\n",
+          &_text, &_data);
+    Print(L"Pausing for debugger attachment.\n");
+
+    x = 1;
+    while (x++) {
+        /* Make this so it can't /totally/ DoS us. */
+#if defined(__x86_64__) || defined(__i386__) || defined(__i686__)
+        if (x > 4294967294ULL)
+            break;
+#endif
+        pause();
     }
 }
 

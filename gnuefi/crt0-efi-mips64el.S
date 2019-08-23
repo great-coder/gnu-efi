@@ -172,11 +172,19 @@ _pc:
 
 	// a0: ImageHandle
 	ld		$a0, 16($sp)
-	// call efi_main
-	dla		$t9, efi_main
+	// call _ctors
+	dla		$t9, _ctors
 	jalr		$t9
 	// a1: SystemTable
 	ld		$a1, 24($sp)
+	// call efi_main
+	dla		$t9, efi_main
+	jalr		$t9
+        nop
+	// call _dtors
+	dla		$t9, _dtors
+	jalr		$t9
+        nop
 
 1:
 	ld		$gp, 8($sp)
